@@ -116,6 +116,18 @@ export default function AdminDashboard() {
         fetch('/api/projects'),
       ])
 
+      // Check if any response failed
+      if (!userRes.ok || !aboutRes.ok || !skillsRes.ok || !expRes.ok || !projectsRes.ok) {
+        console.error('API Error:', {
+          userRes: userRes.status,
+          aboutRes: aboutRes.status,
+          skillsRes: skillsRes.status,
+          expRes: expRes.status,
+          projectsRes: projectsRes.status,
+        })
+        throw new Error('فشل في تحميل البيانات من الخادم')
+      }
+
       const [userData, aboutData, skillsData, expData, projectsData] = await Promise.all([
         userRes.json(),
         aboutRes.json(),
@@ -124,14 +136,14 @@ export default function AdminDashboard() {
         projectsRes.json(),
       ])
 
-      setUserInfo(userData)
-      setAboutInfo(aboutData)
-      setSkills(skillsData)
-      setExperience(expData)
-      setProjects(projectsData)
+      setUserInfo(userData || null)
+      setAboutInfo(aboutData || null)
+      setSkills(Array.isArray(skillsData) ? skillsData : [])
+      setExperience(Array.isArray(expData) ? expData : [])
+      setProjects(Array.isArray(projectsData) ? projectsData : [])
     } catch (error) {
       console.error('Error fetching data:', error)
-      toast.error('حدث خطأ في تحميل البيانات')
+      toast.error('حدث خطأ في تحميل البيانات. تأكد من إعداد قاعدة البيانات بشكل صحيح.')
     } finally {
       setLoading(false)
     }
@@ -325,8 +337,10 @@ export default function AdminDashboard() {
   }
 
   function copyLink() {
-    navigator.clipboard.writeText(`${window.location.origin}/portfolio`)
-    toast.success('تم نسخ رابط العرض بنجاح')
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(`${window.location.origin}/portfolio`)
+      toast.success('تم نسخ رابط العرض بنجاح')
+    }
   }
 
   if (loading) {
