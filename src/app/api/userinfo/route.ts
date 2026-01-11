@@ -6,7 +6,16 @@ export async function GET() {
     const userInfo = await db.userInfo.findFirst()
     return NextResponse.json(userInfo)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch user info' }, { status: 500 })
+    console.error('Database error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ 
+      error: 'Failed to fetch user info',
+      details: errorMessage,
+      env: {
+        hasDbUrl: !!process.env.DATABASE_URL,
+        hasDirectUrl: !!process.env.DIRECT_URL,
+      }
+    }, { status: 500 })
   }
 }
 
