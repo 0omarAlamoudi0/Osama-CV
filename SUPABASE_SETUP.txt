@@ -1,0 +1,26 @@
+# إعدادات Supabase للمشروع
+# =================================
+
+## 1. متغيرات Supabase العامة
+NEXT_PUBLIC_SUPABASE_URL=https://kqzutmtjmwojqufymkmb.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxenV0bXRqbXdvanF1Znlta21iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcyOTM3NTYsImV4cCI6MjA4Mjg2OTc1Nn0.QX9pHxS4lXP3ATq3RFsCM4miMZ7WqYypr8mFDfdsu70
+
+## 2. رابط قاعدة البيانات (Database Connection String)
+# =================================
+# لتحصل على الرابط الكامل:
+# 1. اذهب إلى Supabase Dashboard: https://supabase.com/dashboard
+# 2. افتح مشروعك
+# 3. اذهب إلى: Project Settings > Database
+# 4. في قسم "Connection String" > اختر "URI"
+# 5. انسخ الرابط واستبدل [YOUR-PASSWORD] بكلمة المرور التي اخترتها عند إنشاء المشروع
+
+DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.kqzutmtjmwojqufymkmb.supabase.co:5432/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres:[YOUR-PASSWORD]@db.kqzutmtjmwojqufymkmb.supabase.co:5432/postgres"
+
+# =================================
+# ملاحظات مهمة:
+# =================================
+# - DATABASE_URL: يستخدم pgbouncer للاتصالات السريعة (connection pooling)
+# - DIRECT_URL: اتصال مباشر بقاعدة البيانات (للـ migrations فقط)
+# - استبدل [YOUR-PASSWORD] بكلمة مرور قاعدة البيانات الخاصة بك
+# - احفظ هذه المعلومات في ملف .env في جذر المشروع
