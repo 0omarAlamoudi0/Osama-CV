@@ -1,21 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    const userInfo = await db.userInfo.findFirst()
-    return NextResponse.json(userInfo)
+    const { data, error } = await supabase
+      .from('UserInfo')
+      .select('*')
+      .limit(1)
+      .single()
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Supabase error:', error)
+      return NextResponse.json({ error: 'Failed to fetch user info', details: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(data)
   } catch (error) {
-    console.error('Database error:', error)
+    console.error('Error:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ 
-      error: 'Failed to fetch user info',
-      details: errorMessage,
-      env: {
-        hasDbUrl: !!process.env.DATABASE_URL,
-        hasDirectUrl: !!process.env.DIRECT_URL,
-      }
-    }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch user info', details: errorMessage }, { status: 500 })
   }
 }
 
@@ -24,36 +27,41 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { fullName, jobTitle, email, phone, location, birthDate } = body
 
-    // Get or create user info
-    let userInfo = await db.userInfo.findFirst()
+    // Get existing user info
+    const { data: existing } = await supabase
+      .from('UserInfo')
+      .select('id')
+      .limit(1)
+      .single()
 
-    if (userInfo) {
-      userInfo = await db.userInfo.update({
-        where: { id: userInfo.id },
-        data: {
-          fullName,
-          jobTitle,
-          email,
-          phone,
-          location,
-          birthDate,
-        },
-      })
+    let result
+    if (existing) {
+      // Update existing
+      const { data, error } = await supabase
+        .from('UserInfo')
+        .update({ fullName, jobTitle, email, phone, location, birthDate, updatedAt: new Date().toISOString() })
+        .eq('id', existing.id)
+        .select()
+        .single()
+      
+      if (error) throw error
+      result = data
     } else {
-      userInfo = await db.userInfo.create({
-        data: {
-          fullName,
-          jobTitle,
-          email,
-          phone,
-          location,
-          birthDate,
-        },
-      })
+      // Create new
+      const { data, error } = await supabase
+        .from('UserInfo')
+        .insert({ fullName, jobTitle, email, phone, location, birthDate })
+        .select()
+        .single()
+      
+      if (error) throw error
+      result = data
     }
 
-    return NextResponse.json(userInfo)
+    return NextResponse.json(result)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update user info' }, { status: 500 })
+    console.error('Error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: 'Failed to update user info', details: errorMessage }, { status: 500 })
   }
 }

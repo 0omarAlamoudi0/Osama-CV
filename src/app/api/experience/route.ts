@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    const experience = await db.experience.findMany({
-      orderBy: { sortOrder: 'asc' },
-    })
-    return NextResponse.json(experience)
+    const { data, error } = await supabase
+      .from('Experience')
+      .select('*')
+      .order('sortOrder', { ascending: true })
+
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json({ error: 'Failed to fetch experience', details: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(data || [])
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch experience' }, { status: 500 })
+    console.error('Error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: 'Failed to fetch experience', details: errorMessage }, { status: 500 })
   }
 }
 
@@ -18,26 +27,27 @@ export async function POST(request: NextRequest) {
     const { title, company, description, isCurrent, startDate, endDate } = body
 
     // Get the highest sort order
-    const maxExp = await db.experience.findFirst({
-      orderBy: { sortOrder: 'desc' },
-    })
+    const { data: maxExp } = await supabase
+      .from('Experience')
+      .select('sortOrder')
+      .order('sortOrder', { ascending: false })
+      .limit(1)
+      .single()
 
     const sortOrder = maxExp ? maxExp.sortOrder + 1 : 1
 
-    const experience = await db.experience.create({
-      data: {
-        title,
-        company,
-        description,
-        isCurrent,
-        startDate,
-        endDate,
-        sortOrder,
-      },
-    })
+    const { data, error } = await supabase
+      .from('Experience')
+      .insert({ title, company, description, isCurrent, startDate, endDate, sortOrder })
+      .select()
+      .single()
 
-    return NextResponse.json(experience)
+    if (error) throw error
+
+    return NextResponse.json(data)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create experience' }, { status: 500 })
+    console.error('Error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: 'Failed to create experience', details: errorMessage }, { status: 500 })
   }
 }

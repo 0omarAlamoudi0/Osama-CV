@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    const skills = await db.skill.findMany({
-      orderBy: { sortOrder: 'asc' },
-    })
-    return NextResponse.json(skills)
+    const { data, error } = await supabase
+      .from('Skill')
+      .select('*')
+      .order('sortOrder', { ascending: true })
+
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json({ error: 'Failed to fetch skills', details: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(data || [])
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch skills' }, { status: 500 })
+    console.error('Error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: 'Failed to fetch skills', details: errorMessage }, { status: 500 })
   }
 }
 
@@ -18,23 +27,27 @@ export async function POST(request: NextRequest) {
     const { name, category, icon } = body
 
     // Get the highest sort order
-    const maxSkill = await db.skill.findFirst({
-      orderBy: { sortOrder: 'desc' },
-    })
+    const { data: maxSkill } = await supabase
+      .from('Skill')
+      .select('sortOrder')
+      .order('sortOrder', { ascending: false })
+      .limit(1)
+      .single()
 
     const sortOrder = maxSkill ? maxSkill.sortOrder + 1 : 1
 
-    const skill = await db.skill.create({
-      data: {
-        name,
-        category,
-        icon,
-        sortOrder,
-      },
-    })
+    const { data, error } = await supabase
+      .from('Skill')
+      .insert({ name, category, icon, sortOrder })
+      .select()
+      .single()
 
-    return NextResponse.json(skill)
+    if (error) throw error
+
+    return NextResponse.json(data)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create skill' }, { status: 500 })
+    console.error('Error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: 'Failed to create skill', details: errorMessage }, { status: 500 })
   }
 }
